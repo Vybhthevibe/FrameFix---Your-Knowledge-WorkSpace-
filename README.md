@@ -1,6 +1,6 @@
 # FrameFix ⚡
  
-FrameFix is a private, local-first AI-powered engineering knowledge assistant with a ChatGPT-inspired dark aesthetic and persistent Lightfall animation. It allows engineers to search internal technical documents, bug reports, and ADRs, and ask questions about them using RAG (Retrieval-Augmented Generation) running completely on their local machine.
+FrameFix is a private, local-first AI-powered engineering knowledge assistant designed to help engineers explore and understand their technical knowledge base. Featuring a sleek dark interface with persistent Lightfall animations, it enables users to search internal technical documents, bug reports, and Architecture Decision Records (ADRs), and ask contextual questions using Retrieval-Augmented Generation (RAG). All processing and data remain on the user's local machine, ensuring privacy, security, and complete control over engineering knowledge.
 
 ## Architecture & How It Works
 
