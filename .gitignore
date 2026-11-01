@@ -1,0 +1,19 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Environment variables
+.env
+
+# Local databases and uploaded documents
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Python tooling
+.pytest_cache/
+
+# OS files
+.DS_Store

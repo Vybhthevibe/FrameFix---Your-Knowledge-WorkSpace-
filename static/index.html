@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FrameFix — Your Knowledge Workspace</title>
+    <meta name="description" content="Grounded knowledge assistant for internal documentation, architecture decisions, and bug postmortems.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=4">
+</head>
+<body>
+    <!-- Persistent Application-Wide Lightfall Background (Runs Continuously) -->
+    <div id="lightfall-background" class="lightfall-container" aria-hidden="true">
+        <canvas id="lightfall-canvas" class="lightfall-canvas"></canvas>
+    </div>
+
+    <!-- Application Foreground Layout -->
+    <div class="app-layout" id="app-layout">
+        <!-- Persistent Left Sidebar (ChatGPT-Inspired) -->
+        <aside class="sidebar" id="sidebar" aria-label="Main Navigation">
+            <div class="sidebar-header">
+                <div class="brand">
+                    <div class="brand-icon" aria-hidden="true">
+                        <!-- FrameFix Minimalist Neural Frame Icon -->
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect width="18" height="18" x="3" y="3" rx="4" />
+                            <circle cx="9" cy="9" r="1.5" />
+                            <circle cx="15" cy="9" r="1.5" />
+                            <circle cx="12" cy="15" r="1.5" />
+                            <path d="M9 9l3 6 3-6" />
+                        </svg>
+                    </div>
+                    <div class="brand-info">
+                        <span class="brand-title">FrameFix</span>
+                    </div>
+                </div>
+                <button class="sidebar-collapse-btn" id="sidebar-collapse-btn" title="Collapse sidebar" aria-label="Collapse sidebar">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                        <path d="M9 3v18"/>
+                        <path d="m14 9-3 3 3 3"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- New Query Button (ChatGPT Style) -->
+            <div class="sidebar-action-bar">
+                <button class="btn-new-chat" id="btn-new-query" title="Start a fresh question">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    <span>New Question</span>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-group-title">WORKSPACE</div>
+                <button class="nav-item active" id="nav-ask-mode" data-target="ask-mode">
+                    <span class="nav-item-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="4 17 10 11 4 5"/>
+                            <line x1="12" x2="20" y1="19" y2="19"/>
+                        </svg>
+                    </span>
+                    <span class="nav-item-text">Ask FrameFix</span>
+                    <span class="nav-item-pill">RAG</span>
+                </button>
+
+                <button class="nav-item" id="nav-search-mode" data-target="search-mode">
+                    <span class="nav-item-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="m21 21-4.3-4.3"/>
+                        </svg>
+                    </span>
+                    <span class="nav-item-text">Semantic Search</span>
+                </button>
+
+                <button class="nav-item" id="nav-kb-btn">
+                    <span class="nav-item-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+                            <path d="M6 6h10"/>
+                            <path d="M6 10h10"/>
+                        </svg>
+                    </span>
+                    <span class="nav-item-text">Knowledge Base</span>
+                    <span class="nav-item-count" id="kb-doc-count">-</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-recent-section">
+                <div class="recent-header">
+                    <span class="nav-group-title">PREVIOUS CHATS</span>
+                    <button class="recent-clear-btn" id="recent-clear-btn" title="Clear all conversations" aria-label="Clear all conversations">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 6h18"/>
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="recent-list" id="recent-queries-list">
+                    <div class="recent-empty">No previous chats yet</div>
+                </div>
+                <div class="recent-footnote">
+                    <span>Saved in SQLite</span>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="connection-status-card" id="connection-status-card" title="Backend connection status">
+                    <div class="status-indicator">
+                        <span class="status-dot" id="status-dot"></span>
+                        <div class="status-details">
+                            <span class="status-title" id="status-title">Checking backend...</span>
+                            <span class="status-subtitle" id="status-subtitle">http://127.0.0.1:8000</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sidebar-footer-actions">
+                    <button class="footer-action-btn" id="settings-trigger-btn" title="Settings & Shortcuts" aria-label="Settings and Shortcuts">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        <span>Settings</span>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Workspace Area -->
+        <main class="main-workspace" id="main-workspace">
+            <!-- Mobile Topbar -->
+            <header class="mobile-topbar" id="mobile-topbar">
+                <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open sidebar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="4" x2="20" y1="12" y2="12"/>
+                        <line x1="4" x2="20" y1="6" y2="6"/>
+                        <line x1="4" x2="20" y1="18" y2="18"/>
+                    </svg>
+                </button>
+                <div class="mobile-brand">
+                    <span class="brand-title">FrameFix</span>
+                </div>
+                <div class="mobile-status-dot status-dot" id="mobile-status-dot"></div>
+            </header>
+
+            <!-- Global Status Notice Banner -->
+            <div id="api-status-banner" class="status-banner hidden" role="alert">
+                <div class="banner-content">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" x2="12" y1="8" y2="12"/>
+                        <line x1="12" x2="12.01" y1="16" y2="16"/>
+                    </svg>
+                    <span id="banner-message">Warning notice</span>
+                </div>
+                <button class="banner-close" id="banner-close" aria-label="Dismiss banner">&times;</button>
+            </div>
+
+            <!-- Scrollable Workspace Container -->
+            <div class="workspace-scroll-container">
+                <div class="workspace-content" id="workspace-content">
+                    <!-- Home Welcome Hero (ChatGPT-Style) -->
+                    <header class="workspace-hero" id="workspace-hero">
+                        <div class="hero-eyebrow">
+                            <span class="eyebrow-chip">
+                                <span class="eyebrow-dot"></span>
+                                FRAMEFIX
+                            </span>
+                            <span class="eyebrow-divider">/</span>
+                            <span class="corpus-tag" id="corpus-tag-pill">Internal Knowledge Base</span>
+                        </div>
+
+                        <h1 class="hero-heading" id="hero-heading">What can I help you find?</h1>
+
+                        <p class="hero-subtitle" id="hero-subtitle">
+                            Search your knowledge base. Get answers grounded in your documentation.
+                        </p>
+                    </header>
+
+                    <!-- Conversation History Stream (Visible when questions are asked) -->
+                    <section class="conversation-thread" id="conversation-thread" aria-label="Conversation Thread">
+                        <!-- Dynamic Multi-Turn Conversation History -->
+                        <div id="conversation-turns" class="conversation-turns"></div>
+
+                        <!-- Dynamic Results / Answer Area for Active Turn -->
+                        <div id="results-area" class="results-area" aria-live="polite">
+                            <!-- Loading State (ChatGPT Subtle Pulsing Indicator) -->
+                            <div id="loading" class="loading-state hidden">
+                                <div class="loading-dots-container">
+                                    <span class="loading-dot"></span>
+                                    <span class="loading-dot"></span>
+                                    <span class="loading-dot"></span>
+                                </div>
+                                <div class="loading-text-group">
+                                    <p class="loading-primary" id="loading-message">Searching your knowledge base...</p>
+                                    <p class="loading-secondary" id="loading-submessage">Scanning your documents</p>
+                                </div>
+                            </div>
+
+                            <!-- Error Alert State -->
+                            <div id="error-box" class="error-alert hidden" role="alert">
+                                <div class="error-icon">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <line x1="12" x2="12" y1="8" y2="12"/>
+                                        <line x1="12" x2="12.01" y1="16" y2="16"/>
+                                    </svg>
+                                </div>
+                                <div class="error-body">
+                                    <div class="error-title">Request Issue</div>
+                                    <div class="error-message" id="error-message">An unexpected error occurred.</div>
+                                </div>
+                                <div class="error-actions">
+                                    <button class="btn-retry" id="error-retry-btn">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/>
+                                        </svg>
+                                        <span>Retry</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Answer State (RAG Mode) -->
+                            <div id="answer-box" class="answer-container hidden">
+                                <div class="answer-header">
+                                    <div class="answer-title-group">
+                                        <div class="answer-badge">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <rect width="18" height="18" x="3" y="3" rx="4" />
+                                                <path d="M9 9l3 6 3-6" />
+                                            </svg>
+                                            <span>FrameFix</span>
+                                        </div>
+                                        <span class="answer-timestamp" id="answer-timestamp">Just now</span>
+                                    </div>
+
+                                    <div class="answer-actions">
+                                        <button class="action-btn" id="copy-answer-btn" title="Copy answer to clipboard">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                                                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                                            </svg>
+                                            <span id="copy-answer-text">Copy</span>
+                                        </button>
+
+                                        <div class="feedback-group" aria-label="Answer feedback">
+                                            <button class="feedback-btn" id="feedback-up-btn" title="Accurate and grounded" aria-label="Helpful">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M7 10v12"/>
+                                                    <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"/>
+                                                </svg>
+                                            </button>
+                                            <button class="feedback-btn" id="feedback-down-btn" title="Needs improvement" aria-label="Not helpful">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M17 14V2"/>
+                                                    <path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22h0a3.13 3.13 0 0 1-3-3.88Z"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Rendered Markdown Body -->
+                                <div id="answer-text" class="answer-body markdown-rendered"></div>
+
+                                <!-- Feedback toast message -->
+                                <div id="feedback-toast" class="feedback-toast hidden">
+                                    <span>Thank you for your feedback!</span>
+                                </div>
+                            </div>
+
+                            <!-- Sources / Context Passages State -->
+                            <div id="sources-box" class="sources-container hidden">
+                                <div class="sources-header">
+                                    <div class="sources-title-group">
+                                        <span class="sources-label" id="sources-header-title">Grounding Sources</span>
+                                        <span class="sources-count" id="sources-count-badge">0 sources</span>
+                                    </div>
+                                    <div class="sources-controls">
+                                        <button class="btn-toggle-all" id="btn-toggle-all-sources">Expand All</button>
+                                    </div>
+                                </div>
+                                <div id="sources-list" class="sources-list"></div>
+                            </div>
+
+                            <!-- Empty Results State -->
+                            <div id="empty-state" class="empty-state hidden">
+                                <div class="empty-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="11" cy="11" r="8"/>
+                                        <path d="m21 21-4.3-4.3"/>
+                                        <line x1="8" x2="14" y1="11" y2="11"/>
+                                    </svg>
+                                </div>
+                                <div class="empty-title">No Relevant Documents Found</div>
+                                <p class="empty-description">
+                                    Could not find passages matching this query in the indexed corpus. You can adjust your phrasing or index additional documents into the knowledge base.
+                                </p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Question / Query Input Section (ChatGPT Style Dock) -->
+                    <section class="query-container" id="query-container" aria-label="Query Input">
+                        <div class="query-box" id="query-box">
+                            <!-- Mode Selector Header -->
+                            <div class="query-mode-bar">
+                                <div class="mode-tabs" role="tablist">
+                                    <button class="mode-tab active" id="tab-ask" data-target="ask-mode" role="tab" aria-selected="true">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="4 17 10 11 4 5"/>
+                                            <line x1="12" x2="20" y1="19" y2="19"/>
+                                        </svg>
+                                        <span>Ask FrameFix</span>
+                                    </button>
+                                    <button class="mode-tab" id="tab-search" data-target="search-mode" role="tab" aria-selected="false">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="11" cy="11" r="8"/>
+                                            <path d="m21 21-4.3-4.3"/>
+                                        </svg>
+                                        <span>Semantic Search</span>
+                                    </button>
+                                </div>
+                                <div class="topk-selector" title="Number of context chunks to retrieve">
+                                    <label for="topk-select">Context:</label>
+                                    <select id="topk-select" class="topk-select">
+                                        <option value="3">Top 3</option>
+                                        <option value="5" selected>Top 5</option>
+                                        <option value="8">Top 8</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Main Input Area -->
+                            <div class="textarea-wrapper">
+                                <textarea
+                                    id="query-input"
+                                    class="query-textarea"
+                                    placeholder="Ask anything about internal architecture, outages, or configs..."
+                                    rows="2"
+                                    spellcheck="false"
+                                    aria-label="Ask a question"
+                                ></textarea>
+                                <button id="submit-btn" class="submit-btn" aria-label="Submit query" title="Send (Enter)">
+                                    <span class="btn-text hidden" id="submit-btn-text">Submit</span>
+                                    <span class="btn-icon">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <line x1="12" y1="19" x2="12" y2="5"/>
+                                            <polyline points="5 12 12 5 19 12"/>
+                                        </svg>
+                                    </span>
+                                </button>
+                            </div>
+
+                            <!-- Input Sub-Footer Controls -->
+                            <div class="query-footer">
+                                <div class="query-footer-left">
+                                    <span class="corpus-indicator">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                                            <path d="M3 5v14a9 3 0 0 0 18 0V5"/>
+                                            <path d="M3 12a9 3 0 0 0 18 0"/>
+                                        </svg>
+                                        <span id="footer-corpus-status">Corpus Active</span>
+                                    </span>
+                                </div>
+
+                                <div class="query-footer-right">
+                                    <div class="shortcut-hint">
+                                        <span><kbd>Enter</kbd> to send, <kbd>Shift</kbd> + <kbd>Enter</kbd> for new line</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Suggested Questions Section (Home Only) -->
+                    <section class="suggestions-section" id="suggestions-section" aria-label="Suggested Questions">
+                        <div class="suggestions-header">
+                            <span>Suggested questions:</span>
+                        </div>
+
+                        <div class="suggestions-grid">
+                            <button class="suggestion-chip" data-query="How does AcmeAuth authentication work?">
+                                <span class="suggestion-tag">Auth</span>
+                                <span class="suggestion-text">How does AcmeAuth authentication work?</span>
+                                <span class="suggestion-arrow">&rarr;</span>
+                            </button>
+
+                            <button class="suggestion-chip" data-query="What caused the INC-402 outage?">
+                                <span class="suggestion-tag">Incident</span>
+                                <span class="suggestion-text">What caused the INC-402 outage?</span>
+                                <span class="suggestion-arrow">&rarr;</span>
+                            </button>
+
+                            <button class="suggestion-chip" data-query="Explain the AcmeRPC timeout configuration.">
+                                <span class="suggestion-tag">Config</span>
+                                <span class="suggestion-text">Explain the AcmeRPC timeout configuration.</span>
+                                <span class="suggestion-arrow">&rarr;</span>
+                            </button>
+
+                            <button class="suggestion-chip" data-query="What architectural decisions were documented?">
+                                <span class="suggestion-tag">ADR</span>
+                                <span class="suggestion-text">What architectural decisions were documented?</span>
+                                <span class="suggestion-arrow">&rarr;</span>
+                            </button>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+
+        <!-- Knowledge Base Slideover Drawer -->
+        <div class="drawer-backdrop hidden" id="kb-drawer-backdrop"></div>
+        <aside class="kb-drawer hidden" id="kb-drawer" aria-label="Knowledge Base Manager">
+            <div class="drawer-header">
+                <div class="drawer-title-group">
+                    <div class="drawer-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+                            <path d="M6 6h10"/>
+                            <path d="M6 10h10"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="drawer-title">Knowledge Base</h2>
+                        <span class="drawer-subtitle">Indexed Documents</span>
+                    </div>
+                </div>
+                <button class="drawer-close-btn" id="kb-drawer-close" aria-label="Close knowledge base drawer">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" x2="6" y1="6" y2="18"/>
+                        <line x1="6" x2="18" y1="6" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="drawer-body">
+                <!-- Upload Section -->
+                <div class="drawer-section">
+                    <div class="section-title-row">
+                        <span class="section-heading">INDEX NEW DOCUMENT</span>
+                        <span class="section-badge">.md / .txt</span>
+                    </div>
+
+                    <form id="upload-form" class="upload-dropzone">
+                        <div class="dropzone-content">
+                            <div class="dropzone-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="17 8 12 3 7 8"/>
+                                    <line x1="12" x2="12" y1="3" y2="15"/>
+                                </svg>
+                            </div>
+                            <div class="dropzone-text">
+                                <span class="dropzone-prompt">Choose document or drag & drop</span>
+                                <span class="dropzone-hint">Supports Markdown (.md) and plain text (.txt)</span>
+                            </div>
+                            <input type="file" id="file-input" class="file-input-hidden" accept=".txt,.md" required>
+                            <label for="file-input" class="file-picker-btn">Select File</label>
+                            <div id="selected-file-label" class="selected-file-label hidden"></div>
+                        </div>
+
+                        <div class="upload-actions">
+                            <button type="submit" id="upload-btn" class="btn-primary" disabled>
+                                <span>Upload & Index</span>
+                            </button>
+                        </div>
+                    </form>
+
+                    <div id="upload-status" class="upload-status-box hidden" role="status"></div>
+                </div>
+
+                <!-- Document List Section -->
+                <div class="drawer-section">
+                    <div class="section-title-row">
+                        <span class="section-heading">INDEXED DOCUMENTS</span>
+                        <span class="doc-count-tag" id="drawer-doc-count">0 items</span>
+                    </div>
+
+                    <div class="doc-search-wrapper">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="m21 21-4.3-4.3"/>
+                        </svg>
+                        <input type="text" id="doc-filter-input" class="doc-filter-input" placeholder="Filter documents by name...">
+                    </div>
+
+                    <ul id="docs-list" class="indexed-docs-list" aria-label="List of indexed documents">
+                        <li class="doc-item-loading">Loading documents...</li>
+                    </ul>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Settings / System Info Modal -->
+        <div class="modal-backdrop hidden" id="settings-modal-backdrop"></div>
+        <div class="modal-dialog hidden" id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    <h2 class="modal-title" id="settings-title">FrameFix Configuration</h2>
+                </div>
+                <button class="modal-close-btn" id="settings-modal-close" aria-label="Close settings">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="config-table">
+                    <div class="config-row">
+                        <span class="config-key">Backend Server</span>
+                        <span class="config-val monospace" id="cfg-backend">http://127.0.0.1:8000</span>
+                    </div>
+                    <div class="config-row">
+                        <span class="config-key">Vector Database</span>
+                        <span class="config-val monospace">ChromaDB (Local Persistent)</span>
+                    </div>
+                    <div class="config-row">
+                        <span class="config-key">Embedding Model</span>
+                        <span class="config-val monospace">all-MiniLM-L6-v2 (CPU Local)</span>
+                    </div>
+                    <div class="config-row">
+                        <span class="config-key">Local LLM Status</span>
+                        <span class="config-val monospace" id="cfg-gemini-status">Checking...</span>
+                    </div>
+                    <div class="config-row">
+                        <span class="config-key">Background FX</span>
+                        <span class="config-val monospace">ReactBits Lightfall (WebGL2)</span>
+                    </div>
+                </div>
+
+                <div class="shortcuts-section">
+                    <h3 class="shortcuts-heading">KEYBOARD SHORTCUTS</h3>
+                    <div class="shortcut-list">
+                        <div class="shortcut-item">
+                            <span class="shortcut-desc">Submit Query</span>
+                            <span class="shortcut-keys"><kbd>Enter</kbd></span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="shortcut-desc">Insert New Line</span>
+                            <span class="shortcut-keys"><kbd>Shift</kbd> + <kbd>Enter</kbd></span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="shortcut-desc">Focus Query Box</span>
+                            <span class="shortcut-keys"><kbd>/</kbd></span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="shortcut-desc">Close Drawers & Modals</span>
+                            <span class="shortcut-keys"><kbd>Esc</kbd></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-actions-footer">
+                    <button class="btn-secondary" id="clear-all-local-data">Clear History</button>
+                    <button class="btn-primary" id="settings-modal-done">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WebGL2 Persistent Background Animation -->
+    <script src="lightfall.js?v=2"></script>
+    <!-- Frontend Controller & API Integration -->
+    <script src="script.js?v=4"></script>
+</body>
+</html>
